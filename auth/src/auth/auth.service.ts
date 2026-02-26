@@ -30,15 +30,40 @@ export class AuthService {
     return { message: 'signup was successful' };
   }
 
-  async signin() {
-    return '';
+  async signin(dto: AuthDto) {
+    const { email, password } = dto;
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!existingUser) {
+      throw new BadRequestException('Wrong credentials');
+    }
+
+    const isMatch = await this.comparePassword({
+      password,
+      hash: existingUser.hashedPassword,
+    });
+
+    if (!isMatch) {
+      throw new BadRequestException('Wrong credentials');
+    }
+
+    return { message: 'signin was successful' };
   }
 
   async signout() {
     return '';
   }
 
-  async hashPassword(passowrd: AuthDto['password']) {
+  async hashPassword(passowrd: string) {
     return await bcrypt.hash(passowrd, 10);
+  }
+
+  async comparePassword(args: { password: string; hash: string }) {
+    const { password, hash } = args;
+
+    return await bcrypt.compare(password, hash);
   }
 }
